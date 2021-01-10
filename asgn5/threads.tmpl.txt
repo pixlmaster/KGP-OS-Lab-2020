@@ -1,0 +1,120 @@
+			+--------------------+
+			|        CS 140      |
+			| PROJECT 1: THREADS |
+			|   DESIGN DOCUMENT  |
+			+--------------------+
+				   
+---- GROUP ----
+
+Prabhpreet Singh Sodhi- 17CS10035
+Akash Tiwari- 17CS10003
+
+---- PRELIMINARIES ----
+
+References: 
+1. http://www.ccs.neu.edu/home/skotthe/classes/cs5600/fall/2015/notes/pintos-project1.pdf
+2. https://piazza.com/class_profile/get_resource/jl28zj99fj24yy/jldagvykoum59l
+	
+
+			     ALARM CLOCK
+			     ===========
+
+---- DATA STRUCTURES ----
+
+1.
+	struct thread
+	{
+		...
+
+		int64_t wake_ticks;
+
+		...
+	};
+
+	File in which change is made: src/threads/thread.h
+	Purpose: To store the ticks at which this thread should be awaken again.
+
+2. 
+	
+	enum thread_status
+	{
+
+		...
+		... ,
+		THREAD_SLEEPING
+
+	};
+
+	File in which change is made: src/threads/thread.h
+	Purpose: To denote the status of a sleeping thread 
+
+3. 
+	static struct list sleeping_list;
+
+	...
+	...
+
+	thread_init(void)
+	{
+		...
+
+		list_init(&sleeping_list);
+
+		...
+	} 
+
+	File in which change is made: src/threads/thread.c
+	Purpose: Create a list which stores the currently sleeping threads
+
+
+---- ALGORITHMS ----
+
+>> A2: Briefly describe what happens in a call to timer_sleep(),
+>> including the effects of the timer interrupt handler.
+
+
+When timer_sleep() is called, the value of the 'ticks' is passed to another function called thread_sleep.
+This thread_sleep function suspends (or sleeps) the thread, calculates its waking ticks and inserts it in a list of sleeping threads using the list_insert_ordered() function.
+Hence, the list is maintained in the sorted order of waking ticks.
+A thread from the sleeping threads list is then waken by the thread_wake function, which is triggered by the timer_interrupt.
+
+
+>> A3: What steps are taken to minimize the amount of time spent in
+>> the timer interrupt handler?
+
+The timer interrupt inititates the call to the thread_wake function. The thread_wake function accesses the list of sleeping threads, and activates the one which has fulfilled its sleep duration. To optimise the time spent in doing this task, the threads are inserted in the sorted order of the wake up times. 
+
+
+---- SYNCHRONIZATION ----
+
+
+
+
+
+Reference Excerpt from the official documentation:
+
+"External interrupts, that is, interrupts originating outside the CPU. These interrupts come from hardware devices such as the system timer, keyboard, serial ports, and disks. External interrupts are asynchronous, meaning that their delivery is not synchronized with instruction execution. Handling of external interrupts can be postponed with intr_disable() and related functions (see section A.3.1 Disabling Interrupts)."
+
+
+
+
+
+>> A4: How are race conditions avoided when multiple threads call
+>> timer_sleep() simultaneously?
+
+The interrupts are disabled using the intr_disable() command, which ensure that the call executes atomically for a thread and reads/writes proceed without conflict.
+
+>> A5: How are race conditions avoided when a timer interrupt occurs
+>> during a call to timer_sleep()?
+
+Interrupts are disabled during the critical sections of the timer_sleep, so the timer interrupts cannot disturb the expected flow of our execution. Hence, no such race condition is dangerous. 
+
+---- RATIONALE ----
+
+>> A6: Why did you choose this design?  In what ways is it superior to
+>> another design you considered?
+
+1. The sleeping threads may be inserted without sorting, which would increase the complexity involved in waking a thread
+2. Another approach could be storing the waking times and decrementing them at each tick, and checking for zeros. This involves a significant overhead of O(n) in each tick, where n is the number of threads
+3. Considering the above, our method of implementation is significantly cheaper and simple.
+
